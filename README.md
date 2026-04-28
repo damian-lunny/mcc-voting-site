@@ -1,5 +1,7 @@
 # MCC voting raspberry
 
+text text text
+
 ## Join the hotspot
 
 Use your phone camera to scan the QR code to join the hotspot:
