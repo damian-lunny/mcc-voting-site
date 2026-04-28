@@ -4,7 +4,7 @@
 
 Use your phone camera to scan the QR code to jion the hotspot:
 
-![image]()
+![image](images/img_5577.png)
 
 ## Opening the web page
 
