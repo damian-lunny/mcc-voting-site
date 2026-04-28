@@ -61,3 +61,10 @@ Once the evening is complete, on the Admin page, scroll down to "Competition Man
 
 **Note: clicking the "Start New Week" will clear all the current votes ready for the next week of the Club.**
 
+## Shutting Down
+
+At the end of the evening, you can shurdown the Raspberry by scrolling to the bottom of the Admin page and clicking the "Shutdown" button:
+
+![image](images/img_5587.png)
+
+You'll be asked to confirm and the shutdown will take around 25 seconds.
