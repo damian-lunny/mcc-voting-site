@@ -21,6 +21,10 @@ You can also open the page by using your camera to scan the second QR code:
 
 ![image](images/img_5577.png)
 
+---
+
+<img src="images/img_5577.png" width="188" height="334">
+
 This will bring the page to sign in. Type the PIN in the box and tap "```join```":
 
 ![image](images/img_5578.png)
