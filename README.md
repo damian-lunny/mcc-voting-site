@@ -70,3 +70,15 @@ At the end of the evening, you can shurdown the Raspberry by scrolling to the bo
 ![image](images/img_5587.png)
 
 You'll be asked to confirm and the shutdown will take around 25 seconds.
+
+## QR Codes
+
+### Join Network
+
+(password: /mcchotspot/)
+
+![image](images/qrcode-mcc-join-network.png)
+
+### Open Page
+
+![image](images/qrcode-mcc-open-page.png)
