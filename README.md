@@ -36,3 +36,16 @@ Scroll down to the voting section. The Beginner, Intermediate and Advanced categ
 ![image](images/img_5580.png)
 
 Complete the boxes as you wish and click the Submit button.
+
+## QR Codes
+
+### Join Network
+
+(password: /mcchotspot/)
+
+![image](images/qrcode-mcc-join-network.png)
+
+### Open Page
+
+![image](images/qrcode-mcc-open-page.png)
+
