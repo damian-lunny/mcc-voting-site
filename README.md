@@ -1,6 +1,6 @@
 # MCC voting raspberry
 
-text text text
+This website will allow Camera Club members to vote for photographs in Club competitions.
 
 ## Join the hotspot
 
@@ -41,7 +41,7 @@ Complete the boxes as you wish and click the Submit button.
 
 ### Join Network
 
-(password: /mcchotspot/)
+(password: **mcchotspot**)
 
 ![image](images/qrcode-mcc-join-network.png)
 
