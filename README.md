@@ -41,7 +41,7 @@ Complete the boxes as you wish and click the Submit button.
 
 ### Join Network
 
-(password: **mcchotspot**)
+(password: _mcchotspot_)
 
 ![image](images/qrcode-mcc-join-network.png)
 
