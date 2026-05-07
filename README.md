@@ -6,7 +6,7 @@ This website will allow Camera Club members to vote for photographs in Club comp
 
 Use your phone camera to scan the QR code to join the hotspot:
 
-![image](images/img_5576.png)
+![image](images/mcc-join-network.png)
 
 ## Opening the web page
 
@@ -21,7 +21,7 @@ or just type:
 
 You can also open the page by using your camera to scan the second QR code:
 
-![image](images/img_5577.png)
+![image](images/mcc-open-page.png)
 
 This will bring the page to sign in. Type the PIN in the box and tap "```join```":
 
