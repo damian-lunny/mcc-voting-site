@@ -50,4 +50,3 @@ Complete the boxes as you wish and click the Submit button.
 (_http://192.168.42.1/_)
 
 ![image](images/qrcode-mcc-open-page.png)
-
