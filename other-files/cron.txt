@@ -1,0 +1,1 @@
+15 20 * * 2 cp /home/dietpi/mcc-photo-voting/voting.db /home/dietpi/backups/voting-$(date +\%F).db

@@ -1,0 +1,15 @@
+[Unit]
+Description=MCC Flask Web App
+After=network.target hostapd.service
+
+[Service]
+User=dietpi
+WorkingDirectory=/home/dietpi/mcc-photo-voting
+Environment="FLASK_APP=app.py"
+Environment="FLASK_ENV=production"
+ExecStart=/usr/bin/python3 /home/dietpi/mcc-photo-voting/app.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

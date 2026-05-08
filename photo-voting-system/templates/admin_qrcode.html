@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}QR Code - Admin{% endblock %}
+
+{% block header %}QR Code for Voting{% endblock %}
+
+{% block content %}
+<div class="admin-qrcode-page">
+    <div class="admin-section">
+        <h2>Voting QR Code</h2>
+        <p class="qr-instructions">Display this QR code for voters to scan and access the voting page.</p>
+        
+        <div class="qr-code-container">
+            <div class="qr-code-box">
+                <img src="{{ url_for('admin_qrcode_image') }}" alt="QR Code for Voting" class="qr-code-image">
+            </div>
+            <p class="qr-url"><strong>Voting URL:</strong><br>{{ server_url }}</p>
+        </div>
+        
+        <div class="qr-actions">
+            <button onclick="window.print()" class="btn btn-primary">Print This Page</button>
+            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Back to Admin Panel</a>
+        </div>
+        
+        <div class="qr-info">
+            <p><strong>Instructions:</strong></p>
+            <ul>
+                <li>Display this page on a screen or print it</li>
+                <li>Voters can scan the QR code with their phone camera</li>
+                <li>The QR code will take them directly to the voting page</li>
+                <li>Make sure the server is running and accessible on your local network</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+@media print {
+    nav, footer, .accessibility-controls, .qr-actions {
+        display: none;
+    }
+    .qr-code-container {
+        page-break-inside: avoid;
+    }
+}
+</style>
+{% endblock %}
+

@@ -1,0 +1,6 @@
+put flaskapp.service in /etc/systemd/system/, then:
+
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl restart flaskapp.service
+sudo systemctl status flaskapp.service

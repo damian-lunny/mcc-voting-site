@@ -1,0 +1,710 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - Photo Competition{% endblock %}
+
+{% block header %}Administrator Panel{% endblock %}
+
+{% block content %}
+<div class="admin-panel-page">
+    <aside class="admin-sidebar">
+        <a class="admin-tab-btn active" href="#server-section">Server Info</a>
+        <a class="admin-tab-btn" href="#stats-section">Statistics</a>
+        <a class="admin-tab-btn" href="#site-access-section">Site Access</a>
+        <a class="admin-tab-btn" href="#categories-section">Category Control</a>
+        <a class="admin-tab-btn" href="#settings-section">Photo Settings</a>
+        <a class="admin-tab-btn" href="#competition-section">Competition Management</a>
+        <a class="admin-tab-btn" href="#password-section">Admin Password</a>
+        <a class="admin-tab-btn" href="#archives-section">Archives</a>
+        <a class="admin-tab-btn" href="#system-section">Shutdown</a>
+    </aside>
+
+    <div class="admin-main">
+    <div class="admin-section" id="server-section">
+        <h2>Server Information</h2>
+        <div class="info-box">
+            <p><strong>Voting is live at:</strong></p>
+            <p class="server-url">{{ server_url }}</p>
+            <p class="info-note">Use this URL to generate a QR code for voters.</p>
+            <a href="{{ url_for('admin_qrcode') }}" class="btn btn-primary" style="margin-top: 15px;">View QR Code</a>
+        </div>
+    </div>
+    
+    <div class="admin-section" id="stats-section">
+        <h2>Current Statistics</h2>
+        <div class="stats-box">
+            <p><strong>Total Votes Submitted:</strong> {{ vote_count }}</p>
+            <p><strong>Beginner Votes:</strong> {{ beginner_votes }}</p>
+            <p><strong>Intermediate Votes:</strong> {{ intermediate_votes }}</p>
+            <p><strong>Advanced Votes:</strong> {{ advanced_votes }}</p>
+        </div>
+    </div>
+
+    <div class="admin-section" id="site-access-section">
+        <h2>Site Access Protection</h2>
+        <p>Require visitors to enter a shared access code before they can view the site. Useful when hosting beyond the local network.</p>
+        <div class="stats-box">
+            <p><strong>Protection Status:</strong> <span id="access-status">{% if site_access_enabled %}Enabled{% else %}Disabled{% endif %}</span></p>
+        </div>
+        <div class="button-group" style="justify-content:flex-start;">
+            <button id="enableAccess" class="btn btn-primary"{% if site_access_enabled %} disabled{% endif %}>Enable Protection</button>
+            <button id="disableAccess" class="btn btn-secondary"{% if not site_access_enabled %} disabled{% endif %}>Disable Protection</button>
+        </div>
+        <div class="form-group" style="margin-top: var(--spacing-lg);">
+            <label for="access_code_input">Set / Update Access Code:</label>
+            <p class="form-help">Enter a new code (4+ characters). The current code is hidden for security.</p>
+            <form id="accessCodeForm">
+                <input type="password" id="access_code_input" name="access_code" minlength="4" required>
+                <div class="button-group" style="margin-top: var(--spacing-sm); justify-content:flex-start;">
+                    <button type="submit" class="btn btn-primary">Save Access Code</button>
+                    <button type="button" id="viewAccessCodeBtn" class="btn btn-secondary">View Current Access Code</button>
+                </div>
+            </form>
+        </div>
+        <div id="access-message" class="alert" style="display: none;"></div>
+    </div>
+
+    <div class="admin-section" id="categories-section">
+        <h2>Category Voting Control</h2>
+        <p>Start or stop voting for each category separately. When you start a category, it will reset cookies for that category.</p>
+        
+        <div class="category-controls">
+            <div class="category-control-item">
+                <h3>Beginner Category</h3>
+                <p>Status: <strong id="beginner-status">{% if beginner_active %}Active{% else %}Inactive{% endif %}</strong></p>
+                <p>Votes: {{ beginner_votes }}</p>
+                {% if beginner_active %}
+                <button id="beginner-stop" class="btn btn-danger" data-category="beginner" data-action="stop">Stop Beginner Voting</button>
+                {% else %}
+                <button id="beginner-start" class="btn btn-primary" data-category="beginner" data-action="start">Start Beginner Voting</button>
+                {% endif %}
+            </div>
+            
+            <div class="category-control-item">
+                <h3>Intermediate Category</h3>
+                <p>Status: <strong id="intermediate-status">{% if intermediate_active %}Active{% else %}Inactive{% endif %}</strong></p>
+                <p>Votes: {{ intermediate_votes }}</p>
+                {% if intermediate_active %}
+                <button id="intermediate-stop" class="btn btn-danger" data-category="intermediate" data-action="stop">Stop Intermediate Voting</button>
+                {% else %}
+                <button id="intermediate-start" class="btn btn-primary" data-category="intermediate" data-action="start">Start Intermediate Voting</button>
+                {% endif %}
+            </div>
+            
+            <div class="category-control-item">
+                <h3>Advanced Category</h3>
+                <p>Status: <strong id="advanced-status">{% if advanced_active %}Active{% else %}Inactive{% endif %}</strong></p>
+                <p>Votes: {{ advanced_votes }}</p>
+                {% if advanced_active %}
+                <button id="advanced-stop" class="btn btn-danger" data-category="advanced" data-action="stop">Stop Advanced Voting</button>
+                {% else %}
+                <button id="advanced-start" class="btn btn-primary" data-category="advanced" data-action="start">Start Advanced Voting</button>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div id="category-message" class="alert" style="display: none;"></div>
+    </div>
+    
+    <div class="admin-section" id="settings-section">
+        <h2>Photo Number Settings</h2>
+        <p>Set the maximum valid photo number for each category before voting begins.</p>
+        <form id="settingsForm">
+            <div class="form-group">
+                <label for="max_beginner">Max number for Beginner:</label>
+                <input type="number" id="max_beginner" name="max_beginner" min="1" value="{{ max_beginner }}" required>
+            </div>
+            <div class="form-group">
+                <label for="max_intermediate">Max number for Intermediate:</label>
+                <input type="number" id="max_intermediate" name="max_intermediate" min="1" value="{{ max_intermediate }}" required>
+            </div>
+            <div class="form-group">
+                <label for="max_advanced">Max number for Advanced:</label>
+                <input type="number" id="max_advanced" name="max_advanced" min="1" value="{{ max_advanced }}" required>
+            </div>
+            <div id="settings-message" class="alert" style="display: none;"></div>
+            <button type="submit" class="btn btn-primary">Update Settings</button>
+        </form>
+    </div>
+    
+    <div class="admin-section" id="competition-section">
+        <h2>Competition Management</h2>
+        <div class="form-group">
+            <label for="week_label">Week Label (optional):</label>
+            <input type="text" id="week_label" name="week_label" placeholder="e.g., Week of Nov 27, 2025">
+            <p class="form-help">Leave blank to use default format (current date).</p>
+        </div>
+        <div id="week-message" class="alert" style="display: none;"></div>
+        <button id="startNewWeekBtn" class="btn btn-warning">Start New Week</button>
+        <p class="warning-note">
+            <strong>Warning:</strong> This will archive the current week's results and clear all votes. 
+            This action cannot be undone.
+        </p>
+    </div>
+
+    <div class="admin-section" id="password-section">
+        <h2>Admin Password</h2>
+        <p>Change the administrator password. You must enter the current password to confirm.</p>
+        <form id="adminPasswordForm">
+            <div class="form-group">
+                <label for="current_admin_password">Current Password:</label>
+                <input type="password" id="current_admin_password" name="current_admin_password" required>
+            </div>
+            <div class="form-group">
+                <label for="new_admin_password">New Password:</label>
+                <input type="password" id="new_admin_password" name="new_admin_password" minlength="8" required>
+                <p class="form-help">Use at least 8 characters with a mix of letters, numbers, and symbols.</p>
+            </div>
+            <div class="form-group">
+                <label for="confirm_admin_password">Confirm New Password:</label>
+                <input type="password" id="confirm_admin_password" name="confirm_admin_password" minlength="8" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Update Admin Password</button>
+        </form>
+        <div id="admin-password-message" class="alert" style="display: none;"></div>
+    </div>
+
+    <div class="admin-section" id="archives-section">
+        <h2>Archived Weeks</h2>
+        {% if archived_weeks %}
+        <ul class="archived-weeks-list">
+            {% for week in archived_weeks %}
+            <li>
+                <span>{{ week }}</span>
+                <button type="button" class="btn btn-danger btn-small delete-archive-btn" data-week="{{ week }}">Delete</button>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="info-note">No archived weeks yet.</p>
+        {% endif %}
+        <div id="archive-message" class="alert" style="display:none;"></div>
+    </div>
+
+    <button id="backToTop" class="back-to-top" aria-label="Back to top">↑ Top</button>
+
+    <div id="accessCodeModal" class="modal-overlay">
+        <div class="modal-content">
+            <button type="button" id="modalCloseBtn" class="modal-close" aria-label="Close">&times;</button>
+            <h3>View Current Access Code</h3>
+            <p>Enter the admin password to reveal the current game PIN.</p>
+            <form id="modalAccessForm">
+                <div class="form-group">
+                    <label for="modal_admin_password">Admin Password:</label>
+                    <input type="password" id="modal_admin_password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Reveal Code</button>
+            </form>
+            <div id="modal-message" class="alert" style="display:none;"></div>
+            <div id="modal-access-code" class="access-code-pill" style="display:none;"></div>
+        </div>
+     </div>
+
+    <div class="admin-section" id="system-section">
+      <h2>System Control</h2>
+
+      <p class="warning-note">
+        <strong>Warning:</strong>
+        This will immediately shut down the Raspberry Pi.
+      </p>
+
+      <button id="shutdownPiBtn" class="btn btn-danger">
+        Shut Down Raspberry Pi
+      </button>
+
+      <div id="shutdown-message" class="alert" style="display:none;"></div>
+    </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Site access control
+    const enableAccessBtn = document.getElementById('enableAccess');
+    const disableAccessBtn = document.getElementById('disableAccess');
+    const accessStatus = document.getElementById('access-status');
+    const accessMessage = document.getElementById('access-message');
+    const accessCodeForm = document.getElementById('accessCodeForm');
+    const accessCodeInput = document.getElementById('access_code_input');
+
+    async function updateAccessControl(payload, button) {
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Processing...';
+        }
+        accessMessage.style.display = 'none';
+        try {
+            const response = await fetch('/admin/update_access_control', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (result.success) {
+                accessMessage.textContent = result.message;
+                accessMessage.className = 'alert alert-success';
+                accessMessage.style.display = 'block';
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                accessMessage.textContent = result.message || 'Unable to update access control.';
+                accessMessage.className = 'alert alert-error';
+                accessMessage.style.display = 'block';
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = button.dataset.originalText || button.textContent;
+                }
+            }
+        } catch (error) {
+            accessMessage.textContent = 'Network error. Please try again.';
+            accessMessage.className = 'alert alert-error';
+            accessMessage.style.display = 'block';
+            if (button) {
+                button.disabled = false;
+                button.textContent = button.dataset.originalText || button.textContent;
+            }
+        }
+    }
+
+    if (enableAccessBtn) {
+        enableAccessBtn.dataset.originalText = 'Enable Protection';
+        enableAccessBtn.addEventListener('click', function() {
+            updateAccessControl({ enabled: true }, this);
+        });
+    }
+
+    if (disableAccessBtn) {
+        disableAccessBtn.dataset.originalText = 'Disable Protection';
+        disableAccessBtn.addEventListener('click', function() {
+            updateAccessControl({ enabled: false }, this);
+        });
+    }
+
+    if (accessCodeForm) {
+        accessCodeForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const code = accessCodeInput.value.trim();
+            if (code.length < 4) {
+                accessMessage.textContent = 'Access code must be at least 4 characters.';
+                accessMessage.className = 'alert alert-error';
+                accessMessage.style.display = 'block';
+                return;
+            }
+            updateAccessControl({ code: code }, null);
+        });
+    }
+
+    const viewAccessCodeBtn = document.getElementById('viewAccessCodeBtn');
+    const accessModal = document.getElementById('accessCodeModal');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    const modalForm = document.getElementById('modalAccessForm');
+    const modalPasswordInput = document.getElementById('modal_admin_password');
+    const modalCodeDisplay = document.getElementById('modal-access-code');
+    const modalMessage = document.getElementById('modal-message');
+
+    function openModal() {
+        if (accessModal) {
+            accessModal.classList.add('open');
+            modalPasswordInput.value = '';
+            modalCodeDisplay.textContent = '';
+            modalCodeDisplay.style.display = 'none';
+            modalMessage.style.display = 'none';
+            modalPasswordInput.focus();
+        }
+    }
+
+    function closeModal() {
+        if (accessModal) {
+            accessModal.classList.remove('open');
+        }
+    }
+
+    if (viewAccessCodeBtn) {
+        viewAccessCodeBtn.addEventListener('click', openModal);
+    }
+
+    if (modalCloseBtn) {
+        modalCloseBtn.addEventListener('click', closeModal);
+    }
+
+    if (accessModal) {
+        accessModal.addEventListener('click', function(e) {
+            if (e.target === accessModal) {
+                closeModal();
+            }
+        });
+    }
+
+    if (modalForm) {
+        modalForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            modalMessage.style.display = 'none';
+            modalCodeDisplay.style.display = 'none';
+
+            const password = modalPasswordInput.value.trim();
+            if (!password) {
+                modalMessage.textContent = 'Please enter the admin password.';
+                modalMessage.className = 'alert alert-error';
+                modalMessage.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/admin/reveal_access_code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    modalCodeDisplay.textContent = result.code;
+                    modalCodeDisplay.style.display = 'block';
+                    modalPasswordInput.value = '';
+                } else {
+                    modalMessage.textContent = result.message || 'Unable to reveal access code.';
+                    modalMessage.className = 'alert alert-error';
+                    modalMessage.style.display = 'block';
+                }
+            } catch (error) {
+                modalMessage.textContent = 'Network error. Please try again.';
+                modalMessage.className = 'alert alert-error';
+                modalMessage.style.display = 'block';
+            }
+        });
+    }
+
+    const adminPasswordForm = document.getElementById('adminPasswordForm');
+    const adminPasswordMessage = document.getElementById('admin-password-message');
+    if (adminPasswordForm) {
+        adminPasswordForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            adminPasswordMessage.style.display = 'none';
+            const current = document.getElementById('current_admin_password').value.trim();
+            const newPass = document.getElementById('new_admin_password').value.trim();
+            const confirmPass = document.getElementById('confirm_admin_password').value.trim();
+
+            if (!current || !newPass || !confirmPass) {
+                adminPasswordMessage.textContent = 'Please fill in all password fields.';
+                adminPasswordMessage.className = 'alert alert-error';
+                adminPasswordMessage.style.display = 'block';
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                adminPasswordMessage.textContent = 'New passwords do not match.';
+                adminPasswordMessage.className = 'alert alert-error';
+                adminPasswordMessage.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/admin/update_admin_password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ current_password: current, new_password: newPass })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    adminPasswordMessage.textContent = result.message;
+                    adminPasswordMessage.className = 'alert alert-success';
+                    adminPasswordMessage.style.display = 'block';
+                    adminPasswordForm.reset();
+                } else {
+                    adminPasswordMessage.textContent = result.message || 'Unable to update admin password.';
+                    adminPasswordMessage.className = 'alert alert-error';
+                    adminPasswordMessage.style.display = 'block';
+                }
+            } catch (error) {
+                adminPasswordMessage.textContent = 'Network error. Please try again.';
+                adminPasswordMessage.className = 'alert alert-error';
+                adminPasswordMessage.style.display = 'block';
+            }
+        });
+    }
+
+    const deleteButtons = document.querySelectorAll('.delete-archive-btn');
+    const archiveMessage = document.getElementById('archive-message');
+    deleteButtons.forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const week = this.getAttribute('data-week');
+            if (!confirm(`Delete archive \"${week}\"? This cannot be undone.`)) {
+                return;
+            }
+            archiveMessage.style.display = 'none';
+            this.disabled = true;
+            this.textContent = 'Deleting...';
+            try {
+                const response = await fetch('/admin/delete_archive', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ week_label: week })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    archiveMessage.textContent = result.message;
+                    archiveMessage.className = 'alert alert-success';
+                    archiveMessage.style.display = 'block';
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    archiveMessage.textContent = result.message || 'Unable to delete archive.';
+                    archiveMessage.className = 'alert alert-error';
+                    archiveMessage.style.display = 'block';
+                    this.disabled = false;
+                    this.textContent = 'Delete';
+                }
+            } catch (error) {
+                archiveMessage.textContent = 'Network error. Please try again.';
+                archiveMessage.className = 'alert alert-error';
+                archiveMessage.style.display = 'block';
+                this.disabled = false;
+                this.textContent = 'Delete';
+            }
+        });
+    });
+
+    const tabLinks = document.querySelectorAll('.admin-tab-btn');
+    const observedSections = [];
+    tabLinks.forEach(link => {
+        const target = document.querySelector(link.getAttribute('href'));
+        if (target) {
+            observedSections.push(target);
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const offset = document.querySelector('.top-bar')?.offsetHeight || 0;
+                window.scrollTo({
+                    top: target.getBoundingClientRect().top + window.pageYOffset - offset - 8,
+                    behavior: 'smooth'
+                });
+            });
+        }
+    });
+
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            const id = entry.target.id;
+            const link = document.querySelector(`.admin-tab-btn[href="#${id}"]`);
+            if (entry.isIntersecting && link) {
+                tabLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+            }
+        });
+    }, { threshold: 0.4 });
+
+    observedSections.forEach(section => observer.observe(section));
+
+    // Category control buttons
+    const categoryButtons = document.querySelectorAll('[data-category][data-action]');
+    const categoryMessage = document.getElementById('category-message');
+    
+    categoryButtons.forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const category = this.getAttribute('data-category');
+            const action = this.getAttribute('data-action');
+            
+            this.disabled = true;
+            this.textContent = 'Processing...';
+            
+            try {
+                const response = await fetch('/admin/toggle_category', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ category: category, action: action })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    categoryMessage.textContent = result.message;
+                    categoryMessage.className = 'alert alert-success';
+                    categoryMessage.style.display = 'block';
+                    
+                    // Reload page after a moment to show updated status
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    categoryMessage.textContent = result.message || 'Error updating category.';
+                    categoryMessage.className = 'alert alert-error';
+                    categoryMessage.style.display = 'block';
+                    this.disabled = false;
+                    this.textContent = action === 'start' ? `Start ${category.charAt(0).toUpperCase() + category.slice(1)} Voting` : `Stop ${category.charAt(0).toUpperCase() + category.slice(1)} Voting`;
+                }
+            } catch (error) {
+                categoryMessage.textContent = 'Network error. Please try again.';
+                categoryMessage.className = 'alert alert-error';
+                categoryMessage.style.display = 'block';
+                this.disabled = false;
+                this.textContent = action === 'start' ? `Start ${category.charAt(0).toUpperCase() + category.slice(1)} Voting` : `Stop ${category.charAt(0).toUpperCase() + category.slice(1)} Voting`;
+            }
+        });
+    });
+    
+    // Settings form
+    const settingsForm = document.getElementById('settingsForm');
+    const settingsMessage = document.getElementById('settings-message');
+    
+    settingsForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const data = {
+            max_beginner: parseInt(document.getElementById('max_beginner').value),
+            max_intermediate: parseInt(document.getElementById('max_intermediate').value),
+            max_advanced: parseInt(document.getElementById('max_advanced').value)
+        };
+        
+        try {
+            const response = await fetch('/admin/update_settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                settingsMessage.textContent = result.message;
+                settingsMessage.className = 'alert alert-success';
+                settingsMessage.style.display = 'block';
+                setTimeout(() => {
+                    settingsMessage.style.display = 'none';
+                }, 3000);
+            } else {
+                settingsMessage.textContent = result.message || 'Error updating settings.';
+                settingsMessage.className = 'alert alert-error';
+                settingsMessage.style.display = 'block';
+            }
+        } catch (error) {
+            settingsMessage.textContent = 'Network error. Please try again.';
+            settingsMessage.className = 'alert alert-error';
+            settingsMessage.style.display = 'block';
+        }
+    });
+    
+    // Start new week
+    const startNewWeekBtn = document.getElementById('startNewWeekBtn');
+    const weekMessage = document.getElementById('week-message');
+    
+    startNewWeekBtn.addEventListener('click', async function() {
+        if (!confirm('Are you sure you want to start a new week? This will archive current results and clear all votes.')) {
+            return;
+        }
+        
+        const weekLabel = document.getElementById('week_label').value.trim();
+        const data = weekLabel ? { week_label: weekLabel } : {};
+        
+        startNewWeekBtn.disabled = true;
+        startNewWeekBtn.textContent = 'Processing...';
+        
+        try {
+            const response = await fetch('/admin/start_new_week', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                weekMessage.textContent = result.message;
+                weekMessage.className = 'alert alert-success';
+                weekMessage.style.display = 'block';
+                document.getElementById('week_label').value = '';
+                
+                // Reload page after a moment to show updated stats
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                weekMessage.textContent = result.message || 'Error starting new week.';
+                weekMessage.className = 'alert alert-error';
+                weekMessage.style.display = 'block';
+                startNewWeekBtn.disabled = false;
+                startNewWeekBtn.textContent = 'Start New Week';
+            }
+        } catch (error) {
+            weekMessage.textContent = 'Network error. Please try again.';
+            weekMessage.className = 'alert alert-error';
+            weekMessage.style.display = 'block';
+            startNewWeekBtn.disabled = false;
+            startNewWeekBtn.textContent = 'Start New Week';
+        }
+    });
+
+    const backToTopBtn = document.getElementById('backToTop');
+    if (backToTopBtn) {
+        backToTopBtn.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 250) {
+                backToTopBtn.classList.add('visible');
+            } else {
+                backToTopBtn.classList.remove('visible');
+            }
+        });
+    }
+
+    const shutdownBtn = document.getElementById('shutdownPiBtn');
+    const shutdownMsg = document.getElementById('shutdown-message');
+
+    if (shutdownBtn) {
+        shutdownBtn.addEventListener('click', async () => {
+            if (!confirm(
+                'Are you sure you want to shut down the Raspberry Pi?\n\n' +
+                'This will immediately power off the system.'
+            )) {
+                return;
+            }
+
+            shutdownBtn.disabled = true;
+            shutdownBtn.textContent = 'Shutting down…';
+
+            try {
+                const response = await fetch('/admin/shutdown_pi', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    shutdownMsg.textContent = 'System is shutting down…';
+                    shutdownMsg.className = 'alert alert-success';
+                } else {
+                    shutdownMsg.textContent = result.message || 'Shutdown failed.';
+                    shutdownMsg.className = 'alert alert-error';
+                    shutdownBtn.disabled = false;
+                    shutdownBtn.textContent = 'Shut Down Raspberry Pi';
+                }
+
+                shutdownMsg.style.display = 'block';
+            } catch (err) {
+                shutdownMsg.textContent =
+                    'Network error. The system may already be shutting down.';
+                shutdownMsg.className = 'alert alert-error';
+                shutdownMsg.style.display = 'block';
+            }
+        });
+    }
+});
+
+</script>
+{% endblock %}
+

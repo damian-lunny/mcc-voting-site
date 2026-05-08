@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Vote - Photo Competition{% endblock %}
+
+{% block content %}
+<div class="voting-page">
+    <div class="instructions">
+        <p class="instruction-main"><strong>How to Vote:</strong></p>
+        <p>Vote for each category separately. Enter the photo numbers you wish to vote for in the active categories below.</p>
+
+        <!-- <p class="points-explanation"><strong>Point System:</strong> Your first choice is worth <strong>3 points</strong>, your second choice is worth <strong>2 points</strong>, and your third choice is worth <strong>1 point</strong>.</p>
+        <p>You may vote for up to 3 photos in each category, or leave some blank if you prefer.</p>
+        -->
+<p class="points-explanation">
+  <strong>Point System:</strong>
+  Your first choice is worth <strong>5 points</strong>,
+  second <strong>4 points</strong>,
+  third <strong>3 points</strong>,
+  fourth <strong>2 points</strong>,
+  and fifth <strong>1 point</strong>.
+</p>
+<p>You may vote for up to 5 photos in each category, or leave some blank if you prefer.</p>
+
+     </div>
+    
+    <!-- Beginner Category -->
+    {% if beginner_active %}
+    <div class="category-voting-section" data-category="beginner">
+        <h2>Beginner Category{% if is_admin %} <span class="admin-badge">(Admin - Can Vote Multiple Times)</span>{% endif %}</h2>
+        {% if beginner_voted and not is_admin %}
+        <div class="alert alert-info">
+            <p>You have already submitted your votes for the Beginner category. Thank you!</p>
+        </div>
+        {% else %}
+        <p class="category-info">Valid photo numbers: 1 - {{ max_beginner }}</p>
+        <form class="category-vote-form" data-category="beginner">
+            <div class="vote-inputs">
+                <div class="vote-input-group vote-1">
+                    <label for="beginner_vote_1">Photo earning 5 points:</label>
+                    <input type="number" id="beginner_vote_1" name="vote_1" min="1" max="{{ max_beginner }}" placeholder="Enter Photo Number">
+                </div>
+                <div class="vote-input-group vote-2">
+                    <label for="beginner_vote_2">Photo earning 4 points:</label>
+                    <input type="number" id="beginner_vote_2" name="vote_2" min="1" max="{{ max_beginner }}" placeholder="Enter Photo Number">
+                </div>
+                <div class="vote-input-group vote-3">
+                    <label for="beginner_vote_3">Photo earning 3 point:</label>
+                    <input type="number" id="beginner_vote_3" name="vote_3" min="1" max="{{ max_beginner }}" placeholder="Enter Photo Number">
+                </div>
+                <div class="vote-input-group vote-4">
+                  <label for="beginner_vote_4">Photo earning 2 points:</label>
+                  <input type="number" id="beginner_vote_4" name="vote_4" min="1" max="{{ max_beginner }}" placeholder="Enter Photo Number">
+                </div>
+                <div class="vote-input-group vote-5">
+                  <label for="beginner_vote_5">Photo earning 1 point:</label>
+                  <input type="number" id="beginner_vote_5" name="vote_5" min="1" max="{{ max_beginner }}" placeholder="Enter Photo Number">
+                </div>
+            </div>
+            <div class="category-error-message alert alert-error" style="display: none;"></div>
+            <div class="category-success-message alert alert-success" style="display: none;"></div>
+            <button type="submit" class="btn btn-primary">Submit Beginner Votes</button>
+        </form>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="category-voting-section inactive">
+        <h2>Beginner Category</h2>
+        <div class="alert alert-info">
+            <p>Voting for the Beginner category is currently closed.</p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Intermediate Category -->
+    {% if intermediate_active %}
+    <div class="category-voting-section" data-category="intermediate">
+        <h2>Intermediate Category{% if is_admin %} <span class="admin-badge">(Admin - Can Vote Multiple Times)</span>{% endif %}</h2>
+        {% if intermediate_voted and not is_admin %}
+        <div class="alert alert-info">
+            <p>You have already submitted your votes for the Intermediate category. Thank you!</p>
+        </div>
+        {% else %}
+        <p class="category-info">Valid photo numbers: 1 - {{ max_intermediate }}</p>
+        <form class="category-vote-form" data-category="intermediate">
+            <div class="vote-inputs">
+                <div class="vote-input-group vote-1">
+                    <label for="intermediate_vote_1">Photo earning 5 points:</label>
+                    <input type="number" id="intermediate_vote_1" name="vote_1" min="1" max="{{ max_intermediate }}" placeholder="Enter Photo Number">
+                </div>
+                <div class="vote-input-group vote-2">
+                    <label for="intermediate_vote_2">Photo earning 4 points:</label>
+                    <input type="number" id="intermediate_vote_2" name="vote_2" min="1" max="{{ max_intermediate }}" placeholder="Enter Photo Number">
+                </div>
+                <div class="vote-input-group vote-3">
+                    <label for="intermediate_vote_3">Photo earning 3 point:</label>
+                    <input type="number" id="intermediate_vote_3" name="vote_3" min="1" max="{{ max_intermediate }}" placeholder="Enter Photo Number">
+                </div>
+                <div class="vote-input-group vote-4">
+                  <label for="intermediate_vote_4">Photo earning 2 points:</label>
+                  <input type="number" id="intermediate_vote_4" name="vote_4" min="1" max="{{ max_intermediate }}" placeholder="Enter Photo Number">
+                </div>
+                <div class="vote-input-group vote-5">
+                  <label for="intermediate_vote_5">Photo earning 1 point:</label>
+                  <input type="number" id="intermediate_vote_5" name="vote_5" min="1" max="{{ max_intermediate }}" placeholder="Enter Photo Number">
+                </div>
+            </div>
+            <div class="category-error-message alert alert-error" style="display: none;"></div>
+            <div class="category-success-message alert alert-success" style="display: none;"></div>
+            <button type="submit" class="btn btn-primary">Submit Intermediate Votes</button>
+        </form>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="category-voting-section inactive">
+        <h2>Intermediate Category</h2>
+        <div class="alert alert-info">
+            <p>Voting for the Intermediate category is currently closed.</p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Advanced Category -->
+    {% if advanced_active %}
+    <div class="category-voting-section" data-category="advanced">
+        <h2>Advanced Category{% if is_admin %} <span class="admin-badge">(Admin - Can Vote Multiple Times)</span>{% endif %}</h2>
+        {% if advanced_voted and not is_admin %}
+        <div class="alert alert-info">
+            <p>You have already submitted your votes for the Advanced category. Thank you!</p>
+        </div>
+        {% else %}
+        <p class="category-info">Valid photo numbers: 1 - {{ max_advanced }}</p>
+        <form class="category-vote-form" data-category="advanced">
+            <div class="vote-inputs">
+                <div class="vote-input-group vote-1">
+                    <label for="advanced_vote_1">Photo earning 5 points:</label>
+                    <input type="number" id="advanced_vote_1" name="vote_1" min="1" max="{{ max_advanced }}" placeholder="Enter Photo Number">
+                </div>
+                <div class="vote-input-group vote-2">
+                    <label for="advanced_vote_2">Photo earning 4 points:</label>
+                    <input type="number" id="advanced_vote_2" name="vote_2" min="1" max="{{ max_advanced }}" placeholder="Enter Photo Number">
+                </div>
+                <div class="vote-input-group vote-3">
+                    <label for="advanced_vote_3">Photo earning 3 point:</label>
+                    <input type="number" id="advanced_vote_3" name="vote_3" min="1" max="{{ max_advanced }}" placeholder="Enter Photo Number">
+                </div>
+                <div class="vote-input-group vote-4">
+                  <label for="advanced_vote_4">Photo earning 2 points:</label>
+                  <input type="number" id="advanced_vote_4" name="vote_4" min="1" max="{{ max_advanced }}" placeholder="Enter Photo Number">
+                </div>
+                <div class="vote-input-group vote-5">
+                  <label for="advanced_vote_5">Photo earning 1 point:</label>
+                  <input type="number" id="advanced_vote_5" name="vote_5" min="1" max="{{ max_advanced }}" placeholder="Enter Photo Number">
+                </div>
+            </div>
+            <div class="category-error-message alert alert-error" style="display: none;"></div>
+            <div class="category-success-message alert alert-success" style="display: none;"></div>
+            <button type="submit" class="btn btn-primary">Submit Advanced Votes</button>
+        </form>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="category-voting-section inactive">
+        <h2>Advanced Category</h2>
+        <div class="alert alert-info">
+            <p>Voting for the Advanced category is currently closed.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script id="status-data" type="application/json">
+{{ status_snapshot | tojson | safe }}
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusSnapshot = JSON.parse(document.getElementById('status-data').textContent);
+    const statusKeys = ['beginner_active', 'intermediate_active', 'advanced_active', 'beginner_voted', 'intermediate_voted', 'advanced_voted'];
+    
+    // Handle form submissions for each category
+    const forms = document.querySelectorAll('.category-vote-form');
+    
+    forms.forEach(form => {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const category = this.getAttribute('data-category');
+            const errorMsg = this.querySelector('.category-error-message');
+            const successMsg = this.querySelector('.category-success-message');
+            const submitBtn = this.querySelector('button[type="submit"]');
+            
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            
+            const formData = new FormData(this);
+            const data = {
+                category: category
+            };
+            
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+            
+            try {
+                const response = await fetch('/submit_votes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    successMsg.textContent = result.message;
+                    successMsg.style.display = 'block';
+                    this.reset();
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    errorMsg.textContent = result.message || 'An error occurred';
+                    if (result.errors) {
+                        errorMsg.innerHTML = result.message + '<ul>' + 
+                            result.errors.map(err => '<li>' + err + '</li>').join('') + 
+                            '</ul>';
+                    }
+                    errorMsg.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit ' + category.charAt(0).toUpperCase() + category.slice(1) + ' Votes';
+                }
+            } catch (error) {
+                errorMsg.textContent = 'Network error. Please try again.';
+                errorMsg.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit ' + category.charAt(0).toUpperCase() + category.slice(1) + ' Votes';
+            }
+        });
+    });
+
+    function hasStatusChanged(newStatus) {
+        return statusKeys.some(key => statusSnapshot[key] !== newStatus[key]);
+    }
+
+    async function pollCategoryStatus() {
+        try {
+            const response = await fetch('/api/category_status', { cache: 'no-store' });
+            if (!response.ok) {
+                return;
+            }
+            const data = await response.json();
+            if (hasStatusChanged(data)) {
+                location.reload();
+            }
+        } catch (error) {
+            // Ignore transient errors; next poll will retry
+        }
+    }
+
+    setInterval(pollCategoryStatus, 3000);
+    setTimeout(pollCategoryStatus, 3000);
+});
+</script>
+{% endblock %}
+

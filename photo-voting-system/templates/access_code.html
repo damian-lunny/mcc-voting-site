@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Enter Access Code{% endblock %}
+
+{% block header %}Protected Access{% endblock %}
+
+{% block content %}
+<div class="access-code-page">
+    <div class="access-hero">
+        <p class="access-subtitle">Weekly Photo Competition</p>
+        <h2>Enter the Access PIN to Join</h2>
+        <p class="access-description">Ask the host for the current PIN to start voting.</p>
+    </div>
+    <div class="access-card">
+        <div class="pin-display">
+            <span class="pin-label">Enter PIN</span>
+            <div class="pin-dots">
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+        </div>
+        {% if error %}
+        <div class="alert alert-error" style="margin-bottom: 20px;">
+            <p>{{ error }}</p>
+        </div>
+        {% endif %}
+        <form method="POST" class="access-form">
+            <div class="form-group">
+                <label for="access_code">Access PIN:</label>
+                <input type="text" id="access_code" name="access_code" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="10" placeholder="e.g. 567890" required autofocus>
+            </div>
+            <button type="submit" class="btn btn-primary large-btn">Join</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

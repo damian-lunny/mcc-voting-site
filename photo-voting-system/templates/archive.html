@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Results Archive - Photo Competition{% endblock %}
+
+{% block header %}Results Archive{% endblock %}
+
+{% block content %}
+<div class="archive-page">
+    {% if weeks %}
+    <div class="weeks-list">
+        <h2>Past Competitions</h2>
+        <ul class="weeks-ul">
+            {% for week in weeks %}
+            <li>
+                <a href="#" class="week-link" data-week="{{ week.label }}">{{ week.label }}</a>
+                <span class="week-date">(Archived: {{ week.date[:10] }})</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+    <div id="week-results" class="week-results" style="display: none;">
+        <h2 id="week-title"></h2>
+        <button id="close-results" class="btn btn-secondary">Close</button>
+        <div id="results-content"></div>
+    </div>
+    {% else %}
+    <div class="no-archive">
+        <p>No archived results yet. Results will appear here after a competition week is finalized.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function formatCategory(category) {
+    return category.charAt(0).toUpperCase() + category.slice(1);
+}
+
+function displayWeekResults(weekLabel, data) {
+    const resultsDiv = document.getElementById('week-results');
+    const titleDiv = document.getElementById('week-title');
+    const contentDiv = document.getElementById('results-content');
+    
+    titleDiv.textContent = weekLabel;
+    resultsDiv.style.display = 'block';
+    
+    if (Object.keys(data).length === 0) {
+        contentDiv.innerHTML = '<p>No results available for this week.</p>';
+        return;
+    }
+    
+    let html = '';
+    const categories = ['beginner', 'intermediate', 'advanced'];
+    
+    categories.forEach(category => {
+        if (data[category] && data[category].length > 0) {
+            html += `<div class="category-results">
+                <h3>${formatCategory(category)} Category</h3>
+                <table class="tally-table">
+                    <thead>
+                        <tr>
+                            <th>Photo Number</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            data[category].forEach(item => {
+                html += `
+                <tr class="archive-entry" data-id="${item.id}">
+                  <td>
+                    Photo #${item.photo_number}
+                
+                    {% if session.get('admin_logged_in') %}
+                      <div class="archive-meta">
+                        <label>
+                          Photographer:
+                          <input type="text"
+                                 class="archive-photographer"
+                                 value="${item.photographer_name || ''}">
+                        </label>
+                
+                        <label>
+                          Photo title:
+                          <input type="text"
+                                 class="archive-title"
+                                 value="${item.photo_title || ''}">
+                        </label>
+                
+                        <button class="btn btn-secondary save-archive-entry">
+                          Save
+                        </button>
+                      </div>
+                    {% endif %}
+                  </td>
+                
+                  <td><strong>${item.points}</strong></td>
+                </tr>`;
+            });
+            html += `</tbody></table></div>`;
+        } else {
+            html += `<div class="category-results">
+                <h3>${formatCategory(category)} Category</h3>
+                <p class="no-votes">No votes for this category.</p>
+            </div>`;
+        }
+    });
+    
+    contentDiv.innerHTML = html;
+    
+    // Scroll to results
+    resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const weekLinks = document.querySelectorAll('.week-link');
+    const closeBtn = document.getElementById('close-results');
+    
+    weekLinks.forEach(link => {
+        link.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const weekLabel = this.getAttribute('data-week');
+            
+            try {
+                const response = await fetch(`/api/archive/${encodeURIComponent(weekLabel)}`);
+                const data = await response.json();
+                displayWeekResults(weekLabel, data);
+            } catch (error) {
+                console.error('Error fetching archive:', error);
+                alert('Error loading results for this week.');
+            }
+        });
+    });
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            document.getElementById('week-results').style.display = 'none';
+        });
+    }
+});
+
+document.addEventListener('click', async function (e) {
+    if (!e.target.classList.contains('save-archive-entry')) return;
+
+    const entry = e.target.closest('.archive-entry');
+    const id = entry.dataset.id;
+
+    const photographer =
+        entry.querySelector('.archive-photographer').value.trim();
+    const title =
+        entry.querySelector('.archive-title').value.trim();
+
+    try {
+        const response = await fetch('/admin/update_archive_entry', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: id,
+                photographer_name: photographer,
+                photo_title: title
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            throw new Error('Non-JSON response (likely redirected to login)');
+        }
+        
+        const result = await response.json();
+
+        if (result.success) {
+            alert('Archive entry updated');
+        } else {
+            alert(result.message || 'Error saving changes');
+        }
+
+    } catch (err) {
+        alert(
+            'Unable to save archive entry.\n\n' +
+            'You may no longer be logged in as admin.\n' +
+            'Please refresh the page and log in again.'
+        );
+        console.error(err);
+    }
+});
+</script>
+{% endblock %}
+
