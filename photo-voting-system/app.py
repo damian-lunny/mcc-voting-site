@@ -9,7 +9,6 @@ from datetime import datetime
 from functools import wraps
 import qrcode
 import subprocess
-from datetime import datetime
 
 app = Flask(__name__)
 DATABASE = 'voting.db'
