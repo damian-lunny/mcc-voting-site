@@ -15,6 +15,7 @@
         <a class="admin-tab-btn" href="#competition-section">Competition Management</a>
         <a class="admin-tab-btn" href="#password-section">Admin Password</a>
         <a class="admin-tab-btn" href="#archives-section">Archives</a>
+        <a class="admin-tab-btn" href="#datetime-section">Date/Time</a>
         <a class="admin-tab-btn" href="#system-section">Shutdown</a>
     </aside>
 
@@ -198,6 +199,31 @@
             <div id="modal-access-code" class="access-code-pill" style="display:none;"></div>
         </div>
      </div>
+
+    <div class="admin-section" id="datetime-section">
+      <h2>System Date &amp; Time</h2>
+
+      <p>
+        Set the date and time for the Raspberry Pi.
+        This is required when the device has no internet access.
+      </p>
+
+      <div class="form-row">
+        <label for="system-date">Date:</label>
+        <input type="date" id="system-date">
+      </div>
+
+      <div class="form-row">
+        <label for="system-time">Time (24‑hour):</label>
+        <input type="time" id="system-time">
+      </div>
+
+      <button id="setDateTimeBtn" class="btn btn-primary">
+        Set Date &amp; Time
+      </button>
+
+      <div id="datetime-message" class="alert" style="display:none;"></div>
+    </div>
 
     <div class="admin-section" id="system-section">
       <h2>System Control</h2>
@@ -657,6 +683,51 @@ document.addEventListener('DOMContentLoaded', function() {
                 backToTopBtn.classList.add('visible');
             } else {
                 backToTopBtn.classList.remove('visible');
+            }
+        });
+    }
+
+    const setDateTimeBtn = document.getElementById('setDateTimeBtn');
+    const dateInput = document.getElementById('system-date');
+    const timeInput = document.getElementById('system-time');
+    const dtMsg = document.getElementById('datetime-message');
+
+    if (setDateTimeBtn) {
+        setDateTimeBtn.addEventListener('click', async () => {
+            const date = dateInput.value;
+            const time = timeInput.value;
+
+            if (!date || !time) {
+                alert('Please select both a date and time.');
+                return;
+            }
+
+            if (!confirm(
+                `Set system time to:\n\n${date} ${time}\n\nProceed?`
+            )) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/admin/set_datetime', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date, time })
+                });
+
+                const result = await response.json();
+
+                dtMsg.textContent = result.message || 'Operation complete';
+                dtMsg.className = result.success
+                    ? 'alert alert-success'
+                    : 'alert alert-error';
+                dtMsg.style.display = 'block';
+
+            } catch (err) {
+                dtMsg.textContent =
+                    'Network or authentication error. You may need to re‑login.';
+                dtMsg.className = 'alert alert-error';
+                dtMsg.style.display = 'block';
             }
         });
     }

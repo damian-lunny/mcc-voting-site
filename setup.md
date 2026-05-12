@@ -3,6 +3,7 @@
 ## Setup
 
 * Copy ```photo-voting-system``` to your target directory
+* Add the lines from ```visudo.txt``` to your bottom of your ```sudoers``` file (ie ```sudo visudo```)
 * Copy ```other-files/hostapd.conf``` to ```/etc/hostapd/```
 * Update ```other-files/flaskapp.service``` to reflect correct target directory
 * Copy ```flaskapp.service``` to ```/etc/systemd/system/```

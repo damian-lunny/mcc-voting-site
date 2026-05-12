@@ -9,6 +9,7 @@ from datetime import datetime
 from functools import wraps
 import qrcode
 import subprocess
+from datetime import datetime
 
 app = Flask(__name__)
 DATABASE = 'voting.db'
@@ -882,6 +883,37 @@ def shutdown_pi():
             'success': False,
             'message': str(e)
         }), 500
+
+@app.route('/admin/set_datetime', methods=['POST'])
+@admin_required
+def set_datetime():
+    data = request.json or {}
+
+    date = data.get('date')  # YYYY-MM-DD
+    time = data.get('time')  # HH:MM
+
+    if not date or not time:
+        return jsonify({'success': False, 'message': 'Date and time are required'}), 400
+
+    try:
+        # Validate input
+        dt = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
+
+        # Set system time
+        subprocess.run(
+            ['sudo', '/bin/date', '-s', dt.strftime('%Y-%m-%d %H:%M:00')],
+            check=True
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'System time set to {dt.strftime("%Y-%m-%d %H:%M")}'
+        })
+
+    except ValueError:
+        return jsonify({'success': False, 'message': 'Invalid date/time format'}), 400
+    except subprocess.CalledProcessError as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
