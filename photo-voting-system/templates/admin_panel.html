@@ -203,6 +203,11 @@
     <div class="admin-section" id="datetime-section">
       <h2>System Date &amp; Time</h2>
 
+    <p>
+    <strong>Current System Time:</strong>
+    <span id="current-system-time">Loading...</span>
+    </p>
+
       <p>
         Set the date and time for the Raspberry Pi.
         This is required when the device has no internet access.
@@ -686,6 +691,32 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    const currentTimeSpan = document.getElementById('current-system-time');
+    
+    async function updateSystemTime() {
+        if (!currentTimeSpan) return;
+    
+        try {
+            const response = await fetch('/admin/get_datetime');
+    
+            if (!response.ok) return;
+    
+            const data = await response.json();
+    
+            if (data.success) {
+                currentTimeSpan.textContent = data.datetime;
+            }
+        } catch (err) {
+            currentTimeSpan.textContent = 'Unavailable';
+        }
+    }
+    
+    // Initial load
+    updateSystemTime();
+    
+    // Refresh every 5 seconds
+    setInterval(updateSystemTime, 5000);
 
     const setDateTimeBtn = document.getElementById('setDateTimeBtn');
     const dateInput = document.getElementById('system-date');
