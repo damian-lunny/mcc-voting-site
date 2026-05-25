@@ -1,0 +1,6 @@
+dietpi ALL=NOPASSWD: /sbin/shutdown
+
+nobody ALL=NOPASSWD: /sbin/shutdown
+
+dietpi ALL=NOPASSWD: /usr/bin/timedatectl set-time *
+dietpi ALL=NOPASSWD: /bin/date -s *

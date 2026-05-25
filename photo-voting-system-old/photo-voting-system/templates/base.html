@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Photo Competition Voting{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <div class="top-bar-row">
+                <header>
+                    <h1>{% block header %}Maguiresbridge Photo Competition{% endblock %}</h1>
+                </header>
+                <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            <nav id="primaryNav">
+                <a href="{{ url_for('index') }}">Vote</a>
+                <a href="{{ url_for('tally') }}">Live Tally</a>
+                <a href="{{ url_for('archive') }}">Archive</a>
+                {% if session.get('admin_logged_in') %}
+                <a href="{{ url_for('admin_panel') }}">Admin</a>
+                <a href="{{ url_for('admin_logout') }}">Logout</a>
+                {% else %}
+                <a href="{{ url_for('admin_login') }}">Admin</a>
+                {% endif %}
+            </nav>
+        </div>
+
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+
+        <div class="accessibility-controls">
+            <button id="font-size-toggle" class="accessibility-btn" aria-label="Increase font size" title="Increase font size">
+                <span aria-hidden="true">A+</span> Larger Text
+            </button>
+            <button id="high-contrast-toggle" class="accessibility-btn" aria-label="Toggle high contrast mode" title="High contrast mode">
+                <span aria-hidden="true">◐</span> High Contrast
+            </button>
+        </div>
+        
+        <footer>
+            <p>Photo Competition Voting System</p>
+        </footer>
+    </div>
+    
+    {% block scripts %}{% endblock %}
+    <script>
+        // Accessibility controls
+        document.addEventListener('DOMContentLoaded', function() {
+            // Font size toggle
+            const fontSizeToggle = document.getElementById('font-size-toggle');
+            if (fontSizeToggle) {
+                fontSizeToggle.addEventListener('click', function() {
+                    document.body.classList.toggle('large-text');
+                    const isLarge = document.body.classList.contains('large-text');
+                    localStorage.setItem('largeText', isLarge);
+                    this.textContent = isLarge ? 'A- Smaller Text' : 'A+ Larger Text';
+                });
+                
+                // Restore saved preference
+                if (localStorage.getItem('largeText') === 'true') {
+                    document.body.classList.add('large-text');
+                    fontSizeToggle.textContent = 'A- Smaller Text';
+                }
+            }
+            
+            // High contrast toggle
+            const contrastToggle = document.getElementById('high-contrast-toggle');
+            if (contrastToggle) {
+                contrastToggle.addEventListener('click', function() {
+                    document.body.classList.toggle('high-contrast');
+                    const isHighContrast = document.body.classList.contains('high-contrast');
+                    localStorage.setItem('highContrast', isHighContrast);
+                    this.textContent = isHighContrast ? '◑ Normal Contrast' : '◐ High Contrast';
+                });
+                
+                // Restore saved preference
+                if (localStorage.getItem('highContrast') === 'true') {
+                    document.body.classList.add('high-contrast');
+                    contrastToggle.textContent = '◑ Normal Contrast';
+                }
+            }
+
+            // Mobile nav toggle
+            const navToggle = document.getElementById('navToggle');
+            const primaryNav = document.getElementById('primaryNav');
+            if (navToggle && primaryNav) {
+                navToggle.addEventListener('click', function() {
+                    primaryNav.classList.toggle('open');
+                    navToggle.classList.toggle('open');
+                });
+
+                primaryNav.querySelectorAll('a').forEach(link => {
+                    link.addEventListener('click', () => {
+                        primaryNav.classList.remove('open');
+                        navToggle.classList.remove('open');
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+

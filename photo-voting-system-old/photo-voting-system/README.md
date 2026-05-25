@@ -1,0 +1,1 @@
+# mcc-photo-voting-system

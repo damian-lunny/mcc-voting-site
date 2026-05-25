@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}Live Tally - Photo Competition{% endblock %}
+
+{% block header %}Live Vote Tally{% endblock %}
+
+{% block content %}
+<div class="tally-page">
+    <div class="tally-info">
+        <p>Results update automatically every 5 seconds.</p>
+        <p id="last-update">Last updated: Loading...</p>
+    </div>
+    
+    <div id="tally-results">
+        <div class="loading">Loading results...</div>
+    </div>
+    
+    <div class="admin-section collapsible" id="adminControls">
+        <button type="button" id="toggleAdminControls" class="collapsible-header" aria-expanded="false">
+            <h3>Admin Functions</h3>
+            <span class="chevron">&#9654;</span>
+        </button>
+        <div class="collapsible-body collapsed" id="adminControlsBody">
+            <button id="clearVotesBtn" class="btn btn-danger">Clear All Votes</button>
+            <div id="clear-password-prompt" style="display: none;">
+                <input type="password" id="clear-password" placeholder="Enter admin password">
+                <button id="confirm-clear" class="btn btn-danger">Confirm Clear</button>
+                <button id="cancel-clear" class="btn btn-secondary">Cancel</button>
+            </div>
+            <div id="clear-message" class="alert" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+<button id="backToTop" class="back-to-top" aria-label="Back to top">↑ Top</button>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let refreshInterval;
+
+function formatCategory(category) {
+    return category.charAt(0).toUpperCase() + category.slice(1);
+}
+
+function updateTally() {
+    fetch('/api/tally')
+        .then(response => response.json())
+        .then(data => {
+            const resultsDiv = document.getElementById('tally-results');
+            const lastUpdate = document.getElementById('last-update');
+            
+            lastUpdate.textContent = 'Last updated: ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
+            
+            if (Object.keys(data).length === 0) {
+                resultsDiv.innerHTML = '<div class="no-results">No votes have been submitted yet.</div>';
+                return;
+            }
+            
+            let html = '';
+            const categories = ['beginner', 'intermediate', 'advanced'];
+            
+            categories.forEach(category => {
+                html += `<div class="category-results">
+                    <h2>${formatCategory(category)} Category</h2>`;
+                
+                if (data[category] && data[category].length > 0) {
+                    // Find max points for scaling
+                    const maxPoints = Math.max(...data[category].map(item => item.points));
+                    
+                    html += `<div class="chart-container">`;
+                    
+                    data[category].forEach(item => {
+                        const percentage = maxPoints > 0 ? (item.points / maxPoints) * 100 : 0;
+                        html += `<div class="chart-bar-wrapper">
+                            <div class="chart-bar-label">
+                                <span class="photo-number">Photo #${item.photo_number}</span>
+                                <span class="points-value">${item.points} points</span>
+                            </div>
+                            <div class="chart-bar-container">
+                                <div class="chart-bar" style="width: ${percentage}%" data-points="${item.points}">
+                                    <span class="chart-bar-text">${item.points}</span>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                    
+                    html += `</div>
+                        <div class="table-view-toggle">
+                            <button class="toggle-view-btn active" data-view="chart">Chart View</button>
+                            <button class="toggle-view-btn" data-view="table">Table View</button>
+                        </div>
+                        <table class="tally-table" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>Photo Number</th>
+                                    <th>Points</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    
+                    data[category].forEach(item => {
+                        html += `<tr>
+                            <td>Photo #${item.photo_number}</td>
+                            <td><strong>${item.points}</strong></td>
+                        </tr>`;
+                    });
+                    
+                    html += `</tbody></table>`;
+                } else {
+                    html += `<p class="no-votes">No votes yet for this category.</p>`;
+                }
+                
+                html += `</div>`;
+            });
+            
+            resultsDiv.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error fetching tally:', error);
+            document.getElementById('tally-results').innerHTML = 
+                '<div class="error">Error loading results. Please refresh the page.</div>';
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initial load
+    updateTally();
+    
+    // Auto-refresh every 5 seconds
+    refreshInterval = setInterval(updateTally, 5000);
+    
+    // Clear votes functionality
+    const clearBtn = document.getElementById('clearVotesBtn');
+    const passwordPrompt = document.getElementById('clear-password-prompt');
+    const confirmBtn = document.getElementById('confirm-clear');
+    const cancelBtn = document.getElementById('cancel-clear');
+    const passwordInput = document.getElementById('clear-password');
+    const messageDiv = document.getElementById('clear-message');
+    
+    clearBtn.addEventListener('click', function() {
+        passwordPrompt.style.display = 'block';
+        clearBtn.style.display = 'none';
+        passwordInput.focus();
+    });
+    
+    cancelBtn.addEventListener('click', function() {
+        passwordPrompt.style.display = 'none';
+        clearBtn.style.display = 'block';
+        passwordInput.value = '';
+        messageDiv.style.display = 'none';
+    });
+    
+    confirmBtn.addEventListener('click', async function() {
+        const password = passwordInput.value;
+        
+        if (!password) {
+            messageDiv.textContent = 'Please enter a password.';
+            messageDiv.className = 'alert alert-error';
+            messageDiv.style.display = 'block';
+            return;
+        }
+        
+        try {
+            const response = await fetch('/clear_votes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ password: password })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                messageDiv.textContent = result.message;
+                messageDiv.className = 'alert alert-success';
+                messageDiv.style.display = 'block';
+                passwordPrompt.style.display = 'none';
+                clearBtn.style.display = 'block';
+                passwordInput.value = '';
+                updateTally();
+            } else {
+                messageDiv.textContent = result.message || 'Incorrect password.';
+                messageDiv.className = 'alert alert-error';
+                messageDiv.style.display = 'block';
+            }
+        } catch (error) {
+            messageDiv.textContent = 'Error clearing votes. Please try again.';
+            messageDiv.className = 'alert alert-error';
+            messageDiv.style.display = 'block';
+        }
+    });
+    
+    // Allow Enter key to confirm
+    passwordInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            confirmBtn.click();
+        }
+    });
+    
+    const toggleAdminBtn = document.getElementById('toggleAdminControls');
+    const adminBody = document.getElementById('adminControlsBody');
+    const chevron = toggleAdminBtn?.querySelector('.chevron');
+    if (toggleAdminBtn && adminBody && chevron) {
+        toggleAdminBtn.addEventListener('click', function() {
+            const collapsed = adminBody.classList.toggle('collapsed');
+            toggleAdminBtn.setAttribute('aria-expanded', (!collapsed).toString());
+            chevron.classList.toggle('open', !collapsed);
+        });
+    }
+    
+    // View toggle functionality
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('toggle-view-btn')) {
+            const btn = e.target;
+            const view = btn.getAttribute('data-view');
+            const categoryResults = btn.closest('.category-results');
+            const chartContainer = categoryResults.querySelector('.chart-container');
+            const table = categoryResults.querySelector('.tally-table');
+            const buttons = categoryResults.querySelectorAll('.toggle-view-btn');
+            
+            buttons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            if (view === 'chart') {
+                chartContainer.style.display = 'block';
+                table.style.display = 'none';
+            } else {
+                chartContainer.style.display = 'none';
+                table.style.display = 'table';
+            }
+        }
+    });
+    const backToTopBtn = document.getElementById('backToTop');
+    if (backToTopBtn) {
+        backToTopBtn.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 250) {
+                backToTopBtn.classList.add('visible');
+            } else {
+                backToTopBtn.classList.remove('visible');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+
