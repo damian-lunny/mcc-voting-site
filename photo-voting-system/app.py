@@ -24,6 +24,24 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+def ensure_archive_columns(cursor):
+    """Ensure older databases have all archive metadata columns.
+
+    Some installations already have an archived_results table from an older
+    version of the app. CREATE TABLE IF NOT EXISTS will not add new columns
+    to that existing table, so we run safe ALTER TABLE migrations anywhere
+    archive data may be read or updated.
+    """
+    for column_name, column_definition in [
+        ('photographer_name', "TEXT DEFAULT ''"),
+        ('photo_title', "TEXT DEFAULT ''"),
+        ('commendation', "TEXT DEFAULT ''"),
+    ]:
+        try:
+            cursor.execute(f'ALTER TABLE archived_results ADD COLUMN {column_name} {column_definition}')
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
 def init_db():
     """Initialize database tables"""
     conn = get_db()
@@ -51,28 +69,21 @@ def init_db():
             category TEXT NOT NULL,
             photo_number INTEGER NOT NULL,
             vote_count INTEGER NOT NULL,
+            photographer_name TEXT DEFAULT '',
+            photo_title TEXT DEFAULT '',
+            commendation TEXT DEFAULT '',
             archived_date DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
+    # Lightweight migrations for existing installations.
+    ensure_archive_columns(cursor)
     
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS settings (
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL
         )
-    ''')
-
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS archive_awards (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        week_label TEXT NOT NULL,
-        category TEXT NOT NULL,
-        award_type TEXT NOT NULL,  -- 'highly_commended' or 'commended'
-        slot INTEGER NOT NULL,     -- 1 or 2 (for HC), 1 for Commended
-        photo_number INTEGER,
-        photographer_name TEXT,
-        photo_title TEXT
-    )
     ''')
     
     cursor.execute('SELECT COUNT(*) FROM settings')
@@ -345,6 +356,8 @@ def api_tally():
     """API endpoint for tally data with weighted points"""
     conn = get_db()
     cursor = conn.cursor()
+    ensure_archive_columns(cursor)
+    conn.commit()
     
     cursor.execute('''
         SELECT category, photo_number, vote_position
@@ -418,6 +431,8 @@ def archive():
     """Results archive page"""
     conn = get_db()
     cursor = conn.cursor()
+    ensure_archive_columns(cursor)
+    conn.commit()
     
     cursor.execute('''
         SELECT DISTINCT week_label, archived_date
@@ -433,64 +448,43 @@ def archive():
 
 @app.route('/api/archive/<week_label>')
 def api_archive_week(week_label):
+    """Get archived results for a specific week"""
     conn = get_db()
     cursor = conn.cursor()
-
-    # ✅ Get results
+    ensure_archive_columns(cursor)
+    conn.commit()
+    
     cursor.execute('''
-        SELECT id, category, photo_number, vote_count,
-               photographer_name, photo_title
+        SELECT id, category, photo_number, vote_count, photographer_name, photo_title, commendation
         FROM archived_results
         WHERE week_label = ?
         ORDER BY category, vote_count DESC, photo_number
     ''', (week_label,))
-
+    
     results = {}
-
     for row in cursor.fetchall():
+        id = row['id']
         category = row['category']
-
+        photo_num = row['photo_number']
+        photographer_name = row['photographer_name']
+        photo_title = row['photo_title']
+        commendation = row['commendation']
+        points = row['vote_count']  # Stored as points in archive
+    
         if category not in results:
             results[category] = []
-
+        
         results[category].append({
             'id': row['id'],
             'photo_number': row['photo_number'],
             'points': row['vote_count'],
             'photographer_name': row['photographer_name'],
-            'photo_title': row['photo_title']
+            'photo_title': row['photo_title'],
+            'commendation': row['commendation'] or ''
         })
-
-    # ✅ Get awards (NOW CORRECTLY OUTSIDE LOOP)
-    cursor.execute('''
-        SELECT category, award_type, slot,
-               photo_number, photographer_name, photo_title
-        FROM archive_awards
-        WHERE week_label = ?
-    ''', (week_label,))
-
-    award_data = {}
-
-    for row in cursor.fetchall():
-        category = row['category']
-        award_type = row['award_type']
-        slot = row['slot']
-
-        award_data.setdefault(category, {})
-        award_data[category].setdefault(award_type, {})
-
-        award_data[category][award_type][slot] = {
-            'photo_number': row['photo_number'],
-            'photographer_name': row['photographer_name'],
-            'photo_title': row['photo_title']
-        }
-
+    
     conn.close()
-
-    return jsonify({
-        'results': results,
-        'awards': award_data
-    })
+    return jsonify(results)
 
 @app.route('/admin')
 def admin_login():
@@ -834,6 +828,8 @@ def start_new_week():
     
     conn = get_db()
     cursor = conn.cursor()
+    ensure_archive_columns(cursor)
+    conn.commit()
     
     cursor.execute('''
         SELECT category, photo_number, vote_position
@@ -891,18 +887,56 @@ def update_archive_entry():
     archive_id = data.get('id')
     photographer = data.get('photographer_name', '').strip()
     title = data.get('photo_title', '').strip()
+    commendation = data.get('commendation', '').strip()
+
+    valid_commendations = {'', 'highly_commended', 'commended'}
+    if commendation not in valid_commendations:
+        return jsonify({'success': False, 'message': 'Invalid commendation value'}), 400
 
     if not archive_id:
         return jsonify({'success': False, 'message': 'Archive entry ID is required'}), 400
 
     conn = get_db()
     cursor = conn.cursor()
+    ensure_archive_columns(cursor)
+    conn.commit()
+
+    cursor.execute('''
+        SELECT week_label, category
+        FROM archived_results
+        WHERE id = ?
+    ''', (archive_id,))
+    current_entry = cursor.fetchone()
+
+    if not current_entry:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Archive entry not found'}), 404
+
+    if commendation:
+        limit = 2 if commendation == 'highly_commended' else 1
+        label = 'Highly Commended' if commendation == 'highly_commended' else 'Commended'
+        cursor.execute('''
+            SELECT COUNT(*)
+            FROM archived_results
+            WHERE week_label = ?
+              AND category = ?
+              AND commendation = ?
+              AND id <> ?
+        ''', (current_entry['week_label'], current_entry['category'], commendation, archive_id))
+        existing_count = cursor.fetchone()[0]
+
+        if existing_count >= limit:
+            conn.close()
+            return jsonify({
+                'success': False,
+                'message': f'Only {limit} {label} entr{"y is" if limit == 1 else "ies are"} allowed in each category.'
+            }), 400
 
     cursor.execute("""
         UPDATE archived_results
-        SET photographer_name = ?, photo_title = ?
+        SET photographer_name = ?, photo_title = ?, commendation = ?
         WHERE id = ?
-    """, (photographer, title, archive_id))
+    """, (photographer, title, commendation, archive_id))
 
     conn.commit()
     conn.close()
@@ -952,68 +986,12 @@ def set_datetime():
     except subprocess.CalledProcessError as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@app.route('/admin/get_datetime')
-@admin_required
-def get_datetime():
-    now = datetime.now()
-    return jsonify({
-        'success': True,
-        'datetime': now.strftime('%Y-%m-%d %H:%M:%S')
-    })
-
-@app.route('/admin/update_archive_award', methods=['POST'])
-@admin_required
-def update_archive_award():
-    data = request.json or {}
-
-    week = data.get('week_label')
-    category = data.get('category')
-    award_type = data.get('award_type')
-    slot = data.get('slot')
-
-    photo = data.get('photo_number')
-    photographer = data.get('photographer_name', '').strip()
-    title = data.get('photo_title', '').strip()
-
-    if not all([week, category, award_type, slot]):
-        return jsonify({'success': False, 'message': 'Missing fields'}), 400
-
-    conn = get_db()
-    cursor = conn.cursor()
-
-    # Check if exists
-    cursor.execute('''
-        SELECT id FROM archive_awards
-        WHERE week_label=? AND category=? AND award_type=? AND slot=?
-    ''', (week, category, award_type, slot))
-
-    existing = cursor.fetchone()
-
-    if existing:
-        cursor.execute('''
-            UPDATE archive_awards
-            SET photo_number=?, photographer_name=?, photo_title=?
-            WHERE id=?
-        ''', (photo, photographer, title, existing['id']))
-    else:
-        cursor.execute('''
-            INSERT INTO archive_awards
-            (week_label, category, award_type, slot, photo_number, photographer_name, photo_title)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (week, category, award_type, slot, photo, photographer, title))
-
-    conn.commit()
-    conn.close()
-
-    return jsonify({'success': True})
-
 if __name__ == '__main__':
     init_db()
-    app.run(host="0.0.0.0", port=5000)
     local_ip = get_local_ip()
-    port = 8000
+    port = 5000
     print(f"\n{'='*60}")
-    print(f"Photo Voting System is starting...")
+    print("Photo Voting System is starting...")
     print(f"Access the voting page at: http://{local_ip}:{port}")
     print(f"Admin panel at: http://{local_ip}:{port}/admin")
     print(f"{'='*60}\n")

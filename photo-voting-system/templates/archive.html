@@ -1,126 +1,269 @@
 {% extends "base.html" %}
-{% block title %}Results Archive{% endblock %}
+
+{% block title %}Results Archive - Photo Competition{% endblock %}
+
+{% block header %}Results Archive{% endblock %}
+
 {% block content %}
-
 <div class="archive-page">
-
-  <div class="weeks-list">
-    <h2>Past Competitions</h2>
-    <ul>
-      {% for week in weeks %}
-      <li>
-        <a href="#" class="week-link" data-week="{{ week.label }}">{{ week.label }}</a>
-      </li>
-      {% endfor %}
-    </ul>
-  </div>
-
-  <div id="week-results" style="display:none;">
-    <h2 id="week-title"></h2>
-    <button id="close-results">Close</button>
-    <div id="results-content"></div>
-  </div>
-
+    {% if weeks %}
+    <div class="weeks-list">
+        <h2>Past Competitions</h2>
+        <ul class="weeks-ul">
+            {% for week in weeks %}
+            <li>
+                <a href="#" class="week-link" data-week="{{ week.label }}">{{ week.label }}</a>
+                <span class="week-date">(Archived: {{ week.date[:10] }})</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+    <div id="week-results" class="week-results" style="display: none;">
+        <h2 id="week-title"></h2>
+        <button id="close-results" class="btn btn-secondary">Close</button>
+        <div id="results-content"></div>
+    </div>
+    {% else %}
+    <div class="no-archive">
+        <p>No archived results yet. Results will appear here after a competition week is finalized.</p>
+    </div>
+    {% endif %}
 </div>
-
 {% endblock %}
 
 {% block scripts %}
 <script>
+const IS_ADMIN = {{ 'true' if session.get('admin_logged_in') else 'false' }};
 
-function renderAwardRow(category, type, slot, label, awards) {
-    const existing = (awards?.[category]?.[type]?.[slot]) || {};
-
-    return `
-<tr class="award-row"
-    data-category="${category}"
-    data-type="${type}"
-    data-slot="${slot}">
-  <td>${label}</td>
-  <td><input class="award-photo" value="${existing.photo_number || ''}"></td>
-  <td><input class="award-photographer" value="${existing.photographer_name || ''}"></td>
-  <td><input class="award-title" value="${existing.photo_title || ''}"></td>
-  <td><button class="save-award">Save</button></td>
-</tr>`;
+function formatCategory(category) {
+    return category.charAt(0).toUpperCase() + category.slice(1);
 }
 
-function displayWeekResults(weekLabel, results, awards) {
+function formatCommendation(value) {
+    if (value === 'highly_commended') return 'Highly Commended';
+    if (value === 'commended') return 'Commended';
+    return '';
+}
 
-  const div = document.getElementById('results-content');
-  document.getElementById('week-title').textContent = weekLabel;
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
 
-  let html = '';
+function displayCommendationSummary(categoryData) {
+    const highlyCommended = categoryData.filter(item => item.commendation === 'highly_commended');
+    const commended = categoryData.filter(item => item.commendation === 'commended');
 
-  ['beginner','intermediate','advanced'].forEach(category => {
-
-    html += `<h3>${category}</h3>`;
-
-    if (results[category]) {
-
-      html += `<table><tr><th>Photo</th><th>Points</th></tr>`;
-
-      results[category].forEach(item => {
-        html += `<tr>
-            <td>#${item.photo_number}</td>
-            <td>${item.points}</td>
-        </tr>`;
-      });
-
-      html += `</table>`;
+    if (!IS_ADMIN && highlyCommended.length === 0 && commended.length === 0) {
+        return '';
     }
 
-    // ✅ Awards section
-    html += `
-<h4>Awards</h4>
-<table>
-<tr><th>Award</th><th>Photo</th><th>Name</th><th>Title</th><th></th></tr>
-${renderAwardRow(category, 'highly_commended', 1, 'Highly Commended', awards)}
-${renderAwardRow(category, 'highly_commended', 2, 'Highly Commended', awards)}
-${renderAwardRow(category, 'commended', 1, 'Commended', awards)}
-</table>`;
-  });
+    let summary = '<div class="archive-commendations"><h4>Commendations</h4>';
 
-  div.innerHTML = html;
-  document.getElementById('week-results').style.display = 'block';
+    if (highlyCommended.length > 0) {
+        summary += '<p><strong>Highly Commended:</strong> ' +
+            highlyCommended.map(item => `Photo #${escapeHtml(item.photo_number)}`).join(', ') +
+            '</p>';
+    } else if (IS_ADMIN) {
+        summary += '<p><strong>Highly Commended:</strong> <em>Not selected</em></p>';
+    }
+
+    if (commended.length > 0) {
+        summary += '<p><strong>Commended:</strong> ' +
+            commended.map(item => `Photo #${escapeHtml(item.photo_number)}`).join(', ') +
+            '</p>';
+    } else if (IS_ADMIN) {
+        summary += '<p><strong>Commended:</strong> <em>Not selected</em></p>';
+    }
+
+    if (IS_ADMIN) {
+        summary += '<p class="form-help">Optional: mark up to two Highly Commended photographs and one Commended photograph for this category.</p>';
+    }
+
+    summary += '</div>';
+    return summary;
 }
 
-// ✅ Load archive
-document.querySelectorAll('.week-link').forEach(link => {
-  link.addEventListener('click', async e => {
-    e.preventDefault();
+function displayWeekResults(weekLabel, data) {
+    const resultsDiv = document.getElementById('week-results');
+    const titleDiv = document.getElementById('week-title');
+    const contentDiv = document.getElementById('results-content');
+    
+    titleDiv.textContent = weekLabel;
+    resultsDiv.style.display = 'block';
+    
+    if (Object.keys(data).length === 0) {
+        contentDiv.innerHTML = '<p>No results available for this week.</p>';
+        return;
+    }
+    
+    let html = '';
+    const categories = ['beginner', 'intermediate', 'advanced'];
+    
+    categories.forEach(category => {
+        if (data[category] && data[category].length > 0) {
+            html += `<div class="category-results" data-category="${category}">
+                <h3>${formatCategory(category)} Category</h3>
+                ${displayCommendationSummary(data[category])}
+                <table class="tally-table">
+                    <thead>
+                        <tr>
+                            <th>Photo Number</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            data[category].forEach(item => {
+                const commendationLabel = formatCommendation(item.commendation);
+                const commendationDisplay = commendationLabel
+                    ? `<div class="archive-award"><strong>${commendationLabel}</strong></div>`
+                    : '';
 
-    const week = link.dataset.week;
-    const res = await fetch(`/api/archive/${encodeURIComponent(week)}`);
-    const data = await res.json();
+                const adminFields = IS_ADMIN ? `
+                      <div class="archive-meta">
+                        <label>
+                          Photographer:
+                          <input type="text"
+                                 class="archive-photographer"
+                                 value="${escapeHtml(item.photographer_name || '')}">
+                        </label>
+                
+                        <label>
+                          Photo title:
+                          <input type="text"
+                                 class="archive-title"
+                                 value="${escapeHtml(item.photo_title || '')}">
+                        </label>
 
-    displayWeekResults(week, data.results, data.awards || {});
-  });
+                        <label>
+                          Commendation:
+                          <select class="archive-commendation">
+                            <option value=""${!item.commendation ? ' selected' : ''}>None</option>
+                            <option value="highly_commended"${item.commendation === 'highly_commended' ? ' selected' : ''}>Highly Commended</option>
+                            <option value="commended"${item.commendation === 'commended' ? ' selected' : ''}>Commended</option>
+                          </select>
+                        </label>
+                
+                        <button class="btn btn-secondary btn-small save-archive-entry">
+                          Save
+                        </button>
+                      </div>` : '';
+
+                html += `
+                <tr class="archive-entry" data-id="${item.id}">
+                  <td>
+                    Photo #${escapeHtml(item.photo_number)}
+                    ${commendationDisplay}
+                    ${adminFields}
+                  </td>
+                
+                  <td><strong>${escapeHtml(item.points)}</strong></td>
+                </tr>`;
+            });
+            html += `</tbody></table></div>`;
+        } else {
+            html += `<div class="category-results">
+                <h3>${formatCategory(category)} Category</h3>
+                <p class="no-votes">No votes for this category.</p>
+            </div>`;
+        }
+    });
+    
+    contentDiv.innerHTML = html;
+    
+    // Scroll to results
+    resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const weekLinks = document.querySelectorAll('.week-link');
+    const closeBtn = document.getElementById('close-results');
+    
+    weekLinks.forEach(link => {
+        link.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const weekLabel = this.getAttribute('data-week');
+            
+            try {
+                const response = await fetch(`/api/archive/${encodeURIComponent(weekLabel)}`);
+                const data = await response.json();
+                displayWeekResults(weekLabel, data);
+            } catch (error) {
+                console.error('Error fetching archive:', error);
+                alert('Error loading results for this week.');
+            }
+        });
+    });
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            document.getElementById('week-results').style.display = 'none';
+        });
+    }
 });
 
-// ✅ Save awards
-document.addEventListener('click', async e => {
-  if (!e.target.classList.contains('save-award')) return;
+document.addEventListener('click', async function (e) {
+    if (!e.target.classList.contains('save-archive-entry')) return;
 
-  const row = e.target.closest('.award-row');
+    const entry = e.target.closest('.archive-entry');
+    const id = entry.dataset.id;
 
-  const payload = {
-    week_label: document.getElementById('week-title').textContent,
-    category: row.dataset.category,
-    award_type: row.dataset.type,
-    slot: parseInt(row.dataset.slot),
-    photo_number: row.querySelector('.award-photo').value,
-    photographer_name: row.querySelector('.award-photographer').value,
-    photo_title: row.querySelector('.award-title').value
-  };
+    const photographer =
+        entry.querySelector('.archive-photographer').value.trim();
+    const title =
+        entry.querySelector('.archive-title').value.trim();
+    const commendation =
+        entry.querySelector('.archive-commendation').value;
 
-  await fetch('/admin/update_archive_award', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(payload)
-  });
+    try {
+        const response = await fetch('/admin/update_archive_entry', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: id,
+                photographer_name: photographer,
+                photo_title: title,
+                commendation: commendation
+            })
+        });
+        
+        if (!response.ok) {
+            const errorResult = await response.json().catch(() => null);
+            throw new Error(errorResult?.message || `HTTP ${response.status}`);
+        }
+        
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            throw new Error('Non-JSON response (likely redirected to login)');
+        }
+        
+        const result = await response.json();
 
-  alert('Saved');
+        if (result.success) {
+            alert('Archive entry updated');
+            const selectedWeek = document.getElementById('week-title').textContent;
+            const archiveResponse = await fetch(`/api/archive/${encodeURIComponent(selectedWeek)}`);
+            const archiveData = await archiveResponse.json();
+            displayWeekResults(selectedWeek, archiveData);
+        } else {
+            alert(result.message || 'Error saving changes');
+        }
+
+    } catch (err) {
+        alert(
+            'Unable to save archive entry.\n\n' +
+            err.message + '\n\n' +
+            'You may no longer be logged in as admin.\n' +
+            'Please refresh the page and log in again.'
+        );
+        console.error(err);
+    }
 });
-
 </script>
 {% endblock %}

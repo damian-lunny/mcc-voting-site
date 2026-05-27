@@ -203,11 +203,6 @@
     <div class="admin-section" id="datetime-section">
       <h2>System Date &amp; Time</h2>
 
-    <p>
-    <strong>Current System Time:</strong>
-    <span id="current-system-time">Loading...</span>
-    </p>
-
       <p>
         Set the date and time for the Raspberry Pi.
         This is required when the device has no internet access.
@@ -225,6 +220,10 @@
 
       <button id="setDateTimeBtn" class="btn btn-primary">
         Set Date &amp; Time
+      </button>
+
+      <button id="syncBrowserTimeBtn" class="btn btn-secondary">
+          Use Browser Date & Time
       </button>
 
       <div id="datetime-message" class="alert" style="display:none;"></div>
@@ -692,32 +691,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    const currentTimeSpan = document.getElementById('current-system-time');
-    
-    async function updateSystemTime() {
-        if (!currentTimeSpan) return;
-    
-        try {
-            const response = await fetch('/admin/get_datetime');
-    
-            if (!response.ok) return;
-    
-            const data = await response.json();
-    
-            if (data.success) {
-                currentTimeSpan.textContent = data.datetime;
-            }
-        } catch (err) {
-            currentTimeSpan.textContent = 'Unavailable';
-        }
-    }
-    
-    // Initial load
-    updateSystemTime();
-    
-    // Refresh every 5 seconds
-    setInterval(updateSystemTime, 5000);
-
     const setDateTimeBtn = document.getElementById('setDateTimeBtn');
     const dateInput = document.getElementById('system-date');
     const timeInput = document.getElementById('system-time');
@@ -763,6 +736,90 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+const syncBrowserTimeBtn = document.getElementById('syncBrowserTimeBtn');
+
+function getBrowserDateTimeParts() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+
+    return {
+        date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+        time: `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`,
+        display: now.toLocaleString()
+    };
+}
+
+function updateBrowserTimeButtonLabel() {
+    if (!syncBrowserTimeBtn) return;
+
+    const browserTime = getBrowserDateTimeParts();
+
+    syncBrowserTimeBtn.textContent =
+        `Use Browser Date & Time: ${browserTime.display}`;
+}
+
+if (syncBrowserTimeBtn) {
+    updateBrowserTimeButtonLabel();
+
+    setInterval(updateBrowserTimeButtonLabel, 1000);
+
+    syncBrowserTimeBtn.addEventListener('click', async function() {
+        const browserTime = getBrowserDateTimeParts();
+
+        const confirmed = confirm(
+            `Set the Raspberry Pi date and time to your browser time?\n\n` +
+            `${browserTime.display}`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        const originalText = syncBrowserTimeBtn.textContent;
+        syncBrowserTimeBtn.disabled = true;
+        syncBrowserTimeBtn.textContent = 'Setting Raspberry Pi time...';
+
+        const msg = document.getElementById('datetime-message');
+        msg.style.display = 'none';
+
+        try {
+            const response = await fetch('/admin/set_datetime', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    date: browserTime.date,
+                    time: browserTime.time
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                msg.textContent = result.message;
+                msg.className = 'alert alert-success';
+            } else {
+                msg.textContent = result.message || 'Failed to update time.';
+                msg.className = 'alert alert-error';
+            }
+
+            msg.style.display = 'block';
+
+        } catch (err) {
+            console.error(err);
+
+            msg.textContent = 'Network error.';
+            msg.className = 'alert alert-error';
+            msg.style.display = 'block';
+
+        } finally {
+            syncBrowserTimeBtn.disabled = false;
+            syncBrowserTimeBtn.textContent = originalText;
+            updateBrowserTimeButtonLabel();
+        }
+    });
+}
     const shutdownBtn = document.getElementById('shutdownPiBtn');
     const shutdownMsg = document.getElementById('shutdown-message');
 
