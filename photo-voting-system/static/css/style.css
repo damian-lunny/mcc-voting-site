@@ -16,6 +16,13 @@
     border-radius: var(--radius-sm);
     padding: var(--spacing-xs) var(--spacing-sm);
 }
+
+.archive-small-input {
+    width: 140px;
+    padding: 4px 8px;
+    font-size: 0.9rem;
+}
+
 /* ============================================
    Modern Professional Photo Competition CSS
    Clean, Accessible, Easy to Read
