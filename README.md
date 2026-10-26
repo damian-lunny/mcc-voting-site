@@ -23,7 +23,7 @@ You can also open the page by using your camera to scan the second QR code:
 
 ![image](images/mcc-open-page.png)
 
-This will bring the page to sign in. Type the PIN in the box and tap "```join```":
+This will bring the page to sign in. Type the PIN ("*123456*") in the box and tap "```join```":
 
 ![image](images/img_5578.png)
 
