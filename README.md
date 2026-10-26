@@ -12,11 +12,11 @@ Use your phone camera to scan the QR code to join the hotspot:
 
 You can type the address of the page:
 ```
-   http://192.168.42.1/
+   http://192.168.42.1:5000/
 ```
 or just type:
 ```
-   192.168.42.1
+   192.168.42.1:5000
 ```
 
 You can also open the page by using your camera to scan the second QR code:
@@ -43,10 +43,10 @@ Complete the boxes as you wish and click the Submit button.
 
 (password: _mcchotspot123_)
 
-![image](images/qrcode-mcc-join-network.png)
+![image](images/mcc-join-network.png)
 
 ### Open Page
 
-(_http://192.168.42.1/_)
+(_http://192.168.42.1:5000/_)
 
-![image](images/qrcode-mcc-open-page.png)
+![image](images/mcc-open-page.png)
