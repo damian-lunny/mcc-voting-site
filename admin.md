@@ -4,7 +4,7 @@
 
 ### Starting voting
 
-To access the Admin pages for various functions - including allowing the competitions to begin - click the menu at the top-right and select "Admin", type in the password and select "```Login```":
+To access the Admin pages for various functions - including allowing the competitions to begin - click the menu at the top-right and select "Admin", type in the password ("*mccadmin*") and select "```Login```":
 
 ![image](images/img_5581.png)
 
